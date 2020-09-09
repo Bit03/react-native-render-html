@@ -31,7 +31,8 @@
     "prop-types": ">=15.5.10",
     "react": "*",
     "react-native": "*",
-    "react-native-webview": "*"
+    "react-native-webview": "*",
+    "@astrocoders/react-native-selectable-text": "*"
   },
   "devDependencies": {
     "@babel/core": "^7.8.4",

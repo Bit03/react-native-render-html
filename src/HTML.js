@@ -15,6 +15,7 @@ import {
 import { generateDefaultBlockStyles, generateDefaultTextStyles } from './HTMLDefaultStyles';
 import { DomHandler, Parser } from 'htmlparser2';
 import * as HTMLRenderers from './HTMLRenderers';
+import { SelectableText } from "@astrocoders/react-native-selectable-text";
 
 export default class HTML extends PureComponent {
     static propTypes = {
@@ -48,7 +49,9 @@ export default class HTML extends PureComponent {
         baseFontStyle: PropTypes.object.isRequired,
         textSelectable: PropTypes.bool,
         renderersProps: PropTypes.object,
-        allowFontScaling: PropTypes.bool
+        allowFontScaling: PropTypes.bool,
+        menuItems: PropTypes.array,
+        onSelection: PropTypes.func
     }
 
     static defaultProps = {
@@ -65,7 +68,9 @@ export default class HTML extends PureComponent {
         tagsStyles: {},
         classesStyles: {},
         textSelectable: false,
-        allowFontScaling: true
+        allowFontScaling: true,
+        menuItems: [],
+        onSelection: () => {}
     }
 
     constructor (props) {
@@ -410,7 +415,9 @@ export default class HTML extends PureComponent {
             ignoredStyles,
             ptSize,
             tagsStyles,
-            textSelectable
+            textSelectable,
+            menuItems,
+            onSelection
         } = props;
 
         return RNElements && RNElements.length ? RNElements.map((element, index) => {
@@ -466,8 +473,10 @@ export default class HTML extends PureComponent {
 
             const classStyles = _getElementClassStyles(attribs, classesStyles);
             const textElement = data ?
-                <Text
+                <SelectableText
                   allowFontScaling={allowFontScaling}
+                  menuItems={menuItems}
+                  onSelection={onSelection}
                   style={computeTextStyles(
                       element,
                       {
@@ -480,9 +489,8 @@ export default class HTML extends PureComponent {
                           ignoredStyles,
                           allowedStyles
                       })}
-                >
-                    { data }
-                </Text> :
+                    value={data}
+                /> :
                 false;
 
             const style = [
