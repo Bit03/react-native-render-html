@@ -16,6 +16,7 @@ import { generateDefaultBlockStyles, generateDefaultTextStyles } from './HTMLDef
 import { DomHandler, Parser } from 'htmlparser2';
 import * as HTMLRenderers from './HTMLRenderers';
 import { SelectableText } from "@astrocoders/react-native-selectable-text";
+import HTMLText from './HTMLText';
 
 export default class HTML extends PureComponent {
     static propTypes = {
@@ -70,10 +71,10 @@ export default class HTML extends PureComponent {
         textSelectable: false,
         allowFontScaling: true,
         menuItems: [],
-        onSelection: () => {}
+        onSelection: () => { }
     }
 
-    constructor (props) {
+    constructor(props) {
         super(props);
         this.state = {};
         this.renderers = {
@@ -88,7 +89,7 @@ export default class HTML extends PureComponent {
         this.mounted && this.setState(...args);
     }
 
-    componentDidMount () {
+    componentDidMount() {
         this.mounted = true;
         this.registerDOM();
     }
@@ -109,7 +110,7 @@ export default class HTML extends PureComponent {
             // If the source changed, register the new HTML and parse it
             this.registerDOM(this.props);
         }
-        if (tagsStyles !== this.props.tagsStyles || classesStyles !== this.props.classesStyles) {
+        if (tagsStyles !== this.props.tagsStyles || classesStyles !== this.props.classesStyles) {
             // If the tagsStyles changed, render again
             this.parseDOM(this.state.dom, this.props);
         }
@@ -118,7 +119,7 @@ export default class HTML extends PureComponent {
         }
     }
 
-    async registerDOM (props = this.props, cb) {
+    async registerDOM(props = this.props, cb) {
         const { html, uri } = props;
         if (html) {
             this.setStateSafe({ dom: html, loadingRemoteURL: false, errorLoadingRemoteURL: false });
@@ -144,7 +145,7 @@ export default class HTML extends PureComponent {
         }
     }
 
-    parseDOM (dom, props = this.props) {
+    parseDOM(dom, props = this.props) {
         const { decodeEntities, debug, onParsed } = this.props;
         const parser = new Parser(
             new DomHandler((_err, dom) => {
@@ -167,7 +168,7 @@ export default class HTML extends PureComponent {
         parser.done();
     }
 
-    generateDefaultStyles (baseFontStyle = this.props.baseFontStyle) {
+    generateDefaultStyles(baseFontStyle = this.props.baseFontStyle) {
         this.defaultBlockStyles = generateDefaultBlockStyles(baseFontStyle.fontSize || 14);
         this.defaultTextStyles = generateDefaultTextStyles(baseFontStyle.fontSize || 14);
     }
@@ -178,7 +179,7 @@ export default class HTML extends PureComponent {
      * @returns {boolean}
      * @memberof HTML
      */
-    childrenNeedAView (children) {
+    childrenNeedAView(children) {
         for (let i = 0; i < children.length; i++) {
             if (children[i].wrapper === 'View') {
                 // If we find at least one View, it has to be nested in one
@@ -189,7 +190,7 @@ export default class HTML extends PureComponent {
         return false;
     }
 
-    wrapperHasTextChild (children) {
+    wrapperHasTextChild(children) {
         for (let i = 0; i < children.length; i++) {
             if (children[i].wrapper === 'Text') {
                 return true;
@@ -206,7 +207,7 @@ export default class HTML extends PureComponent {
      * @returns {array}
      * @memberof HTML
      */
-    associateRawTexts (children) {
+    associateRawTexts(children) {
         for (let i = 0; i < children.length; i++) {
             const child = children[i];
             if (
@@ -254,7 +255,7 @@ export default class HTML extends PureComponent {
      * @returns
      * @memberof HTML
      */
-    mapDOMNodesTORNElements (DOMNodes, parentTag = false, props = this.props) {
+    mapDOMNodesTORNElements(DOMNodes, parentTag = false, props = this.props) {
         const { ignoreNodesFunction, ignoredTags, alterNode, alterData, alterChildren, tagsStyles, classesStyles } = props;
         let RNElements = DOMNodes.map((node, nodeIndex) => {
             let { children, data } = node;
@@ -314,7 +315,7 @@ export default class HTML extends PureComponent {
                 let wrapper = "View";
                 if (this.childrenNeedAView(children)) {
                     wrapper = "View";
-                } else if (this.renderers[name] && this.renderers[name].wrapper) {
+                } else if (this.renderers[name] && this.renderers[name].wrapper) {
                     wrapper = this.renderers[name].wrapper;
                 } else if (BLOCK_TAGS.indexOf(name.toLowerCase()) !== -1) {
                     wrapper = "View";
@@ -324,74 +325,74 @@ export default class HTML extends PureComponent {
                 return { wrapper, children, attribs, parent, tagName: name, parentTag };
             }
         })
-        .filter((parsedNode) => parsedNode !== false && parsedNode !== undefined) // remove useless nodes
-        .map((parsedNode, nodeIndex) => {
-            const { wrapper, children, attribs, tagName } = parsedNode;
-            const firstChild = children && children[0];
-            if (firstChild && children.length === 1) {
-                // Specific tweaks for wrappers with a single child
-                if ((attribs === firstChild.attribs || !firstChild.attribs) &&
-                    firstChild.wrapper === wrapper &&
-                    (tagName === firstChild.tagName || firstChild.tagName === 'rawtext')) {
-                    // If the only child of a node is using the same wrapper, merge them into one
-                    return {
-                        ...parsedNode,
-                        attribs: { ...attribs, ...firstChild.attribs },
-                        data: firstChild.data,
-                        children: [],
-                        tagName,
-                        nodeIndex
-                    };
-                }
-            }
-            return { ...parsedNode, nodeIndex };
-        })
-        .map((parsedNode, nodeIndex) => {
-            const { wrapper, attribs, tagName, children } = parsedNode;
-            if (wrapper === 'View' && attribs && this.wrapperHasTextChild(children)) {
-                // When encountering a View wrapper that has some styles and also Text children,
-                // let's filter out text-only styles and apply those to *all* Text children and
-                // remove them from the wrapper, mimicking browsers' behaviour better.
-                const wrapperStyles = {
-                    ...(tagsStyles[tagName] || {}),
-                    ...(_getElementClassStyles(attribs, classesStyles)),
-                    ...cssStringToObject(attribs.style || '')
-                };
-
-                let textChildrenInheritedStyles = {};
-                Object.keys(wrapperStyles).forEach((styleKey) => {
-                    // Extract text-only styles
-                    if (TextOnlyPropTypes.indexOf(styleKey) !== -1) {
-                        textChildrenInheritedStyles[styleKey] = wrapperStyles[styleKey];
-                        delete wrapperStyles[styleKey];
+            .filter((parsedNode) => parsedNode !== false && parsedNode !== undefined) // remove useless nodes
+            .map((parsedNode, nodeIndex) => {
+                const { wrapper, children, attribs, tagName } = parsedNode;
+                const firstChild = children && children[0];
+                if (firstChild && children.length === 1) {
+                    // Specific tweaks for wrappers with a single child
+                    if ((attribs === firstChild.attribs || !firstChild.attribs) &&
+                        firstChild.wrapper === wrapper &&
+                        (tagName === firstChild.tagName || firstChild.tagName === 'rawtext')) {
+                        // If the only child of a node is using the same wrapper, merge them into one
+                        return {
+                            ...parsedNode,
+                            attribs: { ...attribs, ...firstChild.attribs },
+                            data: firstChild.data,
+                            children: [],
+                            tagName,
+                            nodeIndex
+                        };
                     }
-                });
-                if (Object.keys(textChildrenInheritedStyles).length === 0) {
-                    // No style to apply to text children, avoid unecessary loops
-                    return parsedNode;
                 }
-                // Re-write wrapper's styles as a string
-                parsedNode.attribs.style = cssObjectToString(wrapperStyles);
-                for (let i = 0; i < children.length; i++) {
-                    const child = children[i];
-                    const { wrapper, attribs } = child;
+                return { ...parsedNode, nodeIndex };
+            })
+            .map((parsedNode, nodeIndex) => {
+                const { wrapper, attribs, tagName, children } = parsedNode;
+                if (wrapper === 'View' && attribs && this.wrapperHasTextChild(children)) {
+                    // When encountering a View wrapper that has some styles and also Text children,
+                    // let's filter out text-only styles and apply those to *all* Text children and
+                    // remove them from the wrapper, mimicking browsers' behaviour better.
+                    const wrapperStyles = {
+                        ...(tagsStyles[tagName] || {}),
+                        ...(_getElementClassStyles(attribs, classesStyles)),
+                        ...cssStringToObject(attribs.style || '')
+                    };
 
-                    if (wrapper === 'Text') {
-                        // Set (or merge) the inherited text styles extracted from the wrapper for
-                        // each Text child
-                        if (!attribs.style) {
-                            child.attribs.style = cssObjectToString(textChildrenInheritedStyles);
-                        } else {
-                            child.attribs.style = cssObjectToString({
-                                ...textChildrenInheritedStyles,
-                                ...cssStringToObject(child.attribs.style)
-                            });
+                    let textChildrenInheritedStyles = {};
+                    Object.keys(wrapperStyles).forEach((styleKey) => {
+                        // Extract text-only styles
+                        if (TextOnlyPropTypes.indexOf(styleKey) !== -1) {
+                            textChildrenInheritedStyles[styleKey] = wrapperStyles[styleKey];
+                            delete wrapperStyles[styleKey];
+                        }
+                    });
+                    if (Object.keys(textChildrenInheritedStyles).length === 0) {
+                        // No style to apply to text children, avoid unecessary loops
+                        return parsedNode;
+                    }
+                    // Re-write wrapper's styles as a string
+                    parsedNode.attribs.style = cssObjectToString(wrapperStyles);
+                    for (let i = 0; i < children.length; i++) {
+                        const child = children[i];
+                        const { wrapper, attribs } = child;
+
+                        if (wrapper === 'Text') {
+                            // Set (or merge) the inherited text styles extracted from the wrapper for
+                            // each Text child
+                            if (!attribs.style) {
+                                child.attribs.style = cssObjectToString(textChildrenInheritedStyles);
+                            } else {
+                                child.attribs.style = cssObjectToString({
+                                    ...textChildrenInheritedStyles,
+                                    ...cssStringToObject(child.attribs.style)
+                                });
+                            }
                         }
                     }
                 }
-            }
-            return parsedNode;
-        });
+                return parsedNode;
+            });
         return this.associateRawTexts(RNElements);
     }
 
@@ -405,7 +406,7 @@ export default class HTML extends PureComponent {
      * @returns {array}
      * @memberof HTML
      */
-    renderRNElements (RNElements, parentWrapper = 'root', parentIndex = 0, props = this.props) {
+    renderRNElements(RNElements, parentWrapper = 'root', parentIndex = 0, props = this.props) {
         const {
             allowFontScaling,
             allowedStyles,
@@ -422,13 +423,13 @@ export default class HTML extends PureComponent {
 
         return RNElements && RNElements.length ? RNElements.map((element, index) => {
             const { attribs, data, tagName, parentTag, children, nodeIndex, wrapper } = element;
-            const Wrapper = wrapper === 'Text' ? Text : View;
+            const Wrapper = wrapper === 'Text' ? HTMLText : View;
             const key = `${wrapper}-${parentIndex}-${nodeIndex}-${tagName}-${index}-${parentTag}`;
             const convertedCSSStyles =
                 attribs && attribs.style ?
                     cssStringToRNStyle(
                         attribs.style,
-                        Wrapper === Text ? STYLESETS.TEXT : STYLESETS.VIEW, // proper prop-types validation
+                        Wrapper === HTMLText ? STYLESETS.TEXT : STYLESETS.VIEW, // proper prop-types validation
                         { parentTag: tagName, emSize, ptSize, ignoredStyles, allowedStyles }
                     ) :
                     {};
@@ -438,7 +439,7 @@ export default class HTML extends PureComponent {
                 false;
 
             const renderersProps = {};
-            if (Wrapper === Text) {
+            if (Wrapper === HTMLText) {
                 renderersProps.allowFontScaling = allowFontScaling;
                 renderersProps.selectable = this.props.textSelectable;
             }
@@ -474,43 +475,44 @@ export default class HTML extends PureComponent {
             const classStyles = _getElementClassStyles(attribs, classesStyles);
             const textElement = data ?
                 <SelectableText
-                  allowFontScaling={allowFontScaling}
-                  menuItems={menuItems}
-                  onSelection={onSelection}
-                  style={computeTextStyles(
-                      element,
-                      {
-                          defaultTextStyles: this.defaultTextStyles,
-                          tagsStyles,
-                          classesStyles,
-                          baseFontStyle,
-                          emSize,
-                          ptSize,
-                          ignoredStyles,
-                          allowedStyles
-                      })}
                     value={data}
+                    allowFontScaling={allowFontScaling}
+                    menuItems={menuItems}
+                    onSelection={onSelection}
+                    style={computeTextStyles(
+                        element,
+                        {
+                            defaultTextStyles: this.defaultTextStyles,
+                            tagsStyles,
+                            classesStyles,
+                            baseFontStyle,
+                            emSize,
+                            ptSize,
+                            ignoredStyles,
+                            allowedStyles
+                        })}
+
                 /> :
                 false;
 
             const style = [
-                (!tagsStyles || !tagsStyles[tagName]) ? (Wrapper === Text ? this.defaultTextStyles : this.defaultBlockStyles)[tagName] : undefined,
+                (!tagsStyles || !tagsStyles[tagName]) ? (Wrapper === HTMLText ? this.defaultTextStyles : this.defaultBlockStyles)[tagName] : undefined,
                 tagsStyles ? tagsStyles[tagName] : undefined,
                 classStyles,
                 convertedCSSStyles
             ]
-            .filter((s) => s !== undefined);
+                .filter((s) => s !== undefined);
 
             return (
-                <Wrapper key={key} style={style} {...renderersProps}>
-                    { textElement }
-                    { childElements }
+                <Wrapper key={key} menuItems={menuItems} onSelection={onSelection} style={style} {...renderersProps}>
+                    {textElement}
+                    {childElements}
                 </Wrapper>
             );
         }) : false;
     }
 
-    render () {
+    render() {
         const { allowFontScaling, customWrapper, remoteLoadingView, remoteErrorView } = this.props;
         const { RNNodes, loadingRemoteURL, errorLoadingRemoteURL } = this.state;
         if (!RNNodes && !loadingRemoteURL && !errorLoadingRemoteURL) {
@@ -528,14 +530,14 @@ export default class HTML extends PureComponent {
                 remoteErrorView(this.props, this.state) :
                 (
                     <View style={{ flex: 1, alignItems: 'center' }}>
-                        <Text allowFontScaling={allowFontScaling} style={{ fontStyle: 'italic', fontSize: 16 }}>Could not load { this.props.uri }</Text>
+                        <Text allowFontScaling={allowFontScaling} style={{ fontStyle: 'italic', fontSize: 16 }}>Could not load {this.props.uri}</Text>
                     </View>
                 );
         }
 
         return customWrapper ? customWrapper(RNNodes) : (
             <View style={this.props.containerStyle || {}}>
-                { RNNodes }
+                {RNNodes}
             </View>
         );
     }
