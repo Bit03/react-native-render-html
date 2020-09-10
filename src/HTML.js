@@ -52,7 +52,8 @@ export default class HTML extends PureComponent {
         renderersProps: PropTypes.object,
         allowFontScaling: PropTypes.bool,
         menuItems: PropTypes.array,
-        onSelection: PropTypes.func
+        onSelection: PropTypes.func,
+        useSelectable: PropTypes.bool
     }
 
     static defaultProps = {
@@ -71,7 +72,8 @@ export default class HTML extends PureComponent {
         textSelectable: false,
         allowFontScaling: true,
         menuItems: [],
-        onSelection: () => { }
+        onSelection: () => { },
+        useSelectable: false
     }
 
     constructor(props) {
@@ -418,18 +420,20 @@ export default class HTML extends PureComponent {
             tagsStyles,
             textSelectable,
             menuItems,
-            onSelection
+            onSelection,
+            useSelectable
         } = props;
 
         return RNElements && RNElements.length ? RNElements.map((element, index) => {
             const { attribs, data, tagName, parentTag, children, nodeIndex, wrapper } = element;
-            const Wrapper = wrapper === 'Text' ? HTMLText : View;
+            const TextComponent = useSelectable ? HTMLText : Text
+            const Wrapper = wrapper === 'Text' ? TextComponent : View;
             const key = `${wrapper}-${parentIndex}-${nodeIndex}-${tagName}-${index}-${parentTag}`;
             const convertedCSSStyles =
                 attribs && attribs.style ?
                     cssStringToRNStyle(
                         attribs.style,
-                        Wrapper === HTMLText ? STYLESETS.TEXT : STYLESETS.VIEW, // proper prop-types validation
+                        Wrapper === TextComponent ? STYLESETS.TEXT : STYLESETS.VIEW, // proper prop-types validation
                         { parentTag: tagName, emSize, ptSize, ignoredStyles, allowedStyles }
                     ) :
                     {};
@@ -439,7 +443,7 @@ export default class HTML extends PureComponent {
                 false;
 
             const renderersProps = {};
-            if (Wrapper === HTMLText) {
+            if (Wrapper === TextComponent) {
                 renderersProps.allowFontScaling = allowFontScaling;
                 renderersProps.selectable = this.props.textSelectable;
             }
@@ -496,7 +500,7 @@ export default class HTML extends PureComponent {
                 false;
 
             const style = [
-                (!tagsStyles || !tagsStyles[tagName]) ? (Wrapper === HTMLText ? this.defaultTextStyles : this.defaultBlockStyles)[tagName] : undefined,
+                (!tagsStyles || !tagsStyles[tagName]) ? (Wrapper === TextComponent ? this.defaultTextStyles : this.defaultBlockStyles)[tagName] : undefined,
                 tagsStyles ? tagsStyles[tagName] : undefined,
                 classStyles,
                 convertedCSSStyles
