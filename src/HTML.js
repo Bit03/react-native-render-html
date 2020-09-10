@@ -15,7 +15,6 @@ import {
 import { generateDefaultBlockStyles, generateDefaultTextStyles } from './HTMLDefaultStyles';
 import { DomHandler, Parser } from 'htmlparser2';
 import * as HTMLRenderers from './HTMLRenderers';
-import { SelectableText } from "@astrocoders/react-native-selectable-text";
 import HTMLText from './HTMLText';
 
 export default class HTML extends PureComponent {
@@ -478,11 +477,8 @@ export default class HTML extends PureComponent {
 
             const classStyles = _getElementClassStyles(attribs, classesStyles);
             const textElement = data ?
-                <SelectableText
-                    value={data}
+                <Text
                     allowFontScaling={allowFontScaling}
-                    menuItems={menuItems}
-                    onSelection={onSelection}
                     style={computeTextStyles(
                         element,
                         {
@@ -495,8 +491,9 @@ export default class HTML extends PureComponent {
                             ignoredStyles,
                             allowedStyles
                         })}
-
-                /> :
+                >
+                    {data}
+                </Text> :
                 false;
 
             const style = [
